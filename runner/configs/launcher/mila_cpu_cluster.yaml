@@ -12,5 +12,7 @@ hydra:
     array_parallelism: 64
     setup:
       - "module purge"
-      - "module load miniconda/3"
-      - "conda activate myenv"
+      # - "module load miniconda/3"
+      # - "conda activate myenv"
+      - "module load anaconda"
+      - "conda activate py310"

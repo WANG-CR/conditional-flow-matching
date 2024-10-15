@@ -142,6 +142,13 @@ conda activate torchcfm
 # install requirements
 pip install -r requirements.txt
 
+# some more requirements
+pip install hydra-core
+pip install pyrootutils
+pip install rich
+pip install hydra_colorlog --upgrade
+pip install hydra-submitit-launcher --upgrade
+pip install wandb
 # install torchcfm
 pip install -e .
 ```
