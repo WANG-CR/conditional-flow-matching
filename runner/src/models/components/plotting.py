@@ -125,28 +125,34 @@ def plot_trajectory(
     wandb_logger=None,
 ):
     plt.figure(figsize=(6, 6))
-    if isinstance(obs, list):
-        data, labels = [], []
-        for t, xi in enumerate(obs):
-            xi = xi.detach().cpu().numpy()
-            data.append(xi)
-            labels.append(t * np.ones(xi.shape[0]))
-        data = np.concatenate(data, axis=0)
-        labels = np.concatenate(labels, axis=0)
-        scprep.plot.scatter2d(data, c=labels)
-        start = obs[0][:n]
-        ts = len(obs)
-    else:
-        batch_size, ts, dim = obs.shape
-        start = obs[:n, start_time, :]
-        obs = obs.reshape(-1, dim).detach().cpu().numpy()
-        tts = np.tile(np.arange(ts), batch_size)
-        scprep.plot.scatter2d(obs, c=tts)
+    ## plotting the ground truth target distribution / original distribution
+    # if isinstance(obs, list):
+    #     data, labels = [], []
+    #     for t, xi in enumerate(obs):
+    #         xi = xi.detach().cpu().numpy()
+    #         data.append(xi)
+    #         labels.append(t * np.ones(xi.shape[0]))
+    #     data = np.concatenate(data, axis=0)
+    #     labels = np.concatenate(labels, axis=0)
+    #     scprep.plot.scatter2d(data, c=labels)
+    #     start = obs[0][:n]
+    #     ts = len(obs)
+    # else:
+    #     batch_size, ts, dim = obs.shape
+    #     start = obs[:n, start_time, :]
+    #     obs = obs.reshape(-1, dim).detach().cpu().numpy()
+    #     tts = np.tile(np.arange(ts), batch_size)
+    #     scprep.plot.scatter2d(obs, c=tts)
     # plt.scatter(traj[:, :n, 0], traj[:, :n, 1], s=0.3, alpha=0.2, c="black", label="Flow")
     # plt.scatter(traj[-1, :n, 0], traj[-1, :n, 1], s=6, alpha=1, c="purple", marker="x")
-    for i in range(20):
-        plt.plot(traj[:, i, 0], traj[:, i, 1], c="red", alpha=0.5)
-    # plt.legend(["Prior sample z(S)", "Flow", "z(0)"])
+    # for i in range(20):
+    #     plt.plot(traj[:, i, 0], traj[:, i, 1], c="red", alpha=0.5)
+    plt.scatter(traj[0, :n, 0], traj[0, :n, 1], s=10, alpha=0.8, c="black")
+    plt.scatter(traj[:, :n, 0], traj[:, :n, 1], s=0.2, alpha=0.2, c="olive")
+    plt.scatter(traj[-1, :n, 0], traj[-1, :n, 1], s=4, alpha=1, c="blue")
+    plt.legend(["Prior sample z(S)", "Flow", "z(0)"])
+    plt.xticks([])
+    plt.yticks([])
     os.makedirs("figs/traj/", exist_ok=True)
     plt.savefig(f"figs/traj/{title}.png")
     plt.close()

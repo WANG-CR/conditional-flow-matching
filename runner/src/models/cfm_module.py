@@ -401,7 +401,14 @@ class CFMLitModule(LightningModule):
             else:
                 x = [d["x"] for d in outputs][0][0][:100]
             # Sample some random points for the plotting function
-            rand = torch.randn_like(x)
+            # If no trajectory assume generate from standard normal
+            # here, samples need to be sampled with rand or qmc
+            if self.gaussian_dist:
+                rand = self.gaussian_dist.random(x.shape[0])
+                rand = torch.tensor(rand, dtype=torch.float32)
+            else:
+                rand = torch.randn_like(x)
+
             # rand = torch.randn_like(x, generator=torch.Generator(device=x.device).manual_seed(42))
             x = torch.stack([rand, x], dim=1)
             ts = x.shape[1]
@@ -412,7 +419,6 @@ class CFMLitModule(LightningModule):
     def forward_eval_integrate(self, ts, x0, x_rest, outputs, prefix):
         # Build a trajectory
         t_span = torch.linspace(0, 1, 101)
-        # print(f"dimension of x is {x_rest.shape}")
         aug_dims = self.val_augmentations.aug_dims
         regs = []
         trajs = []
