@@ -23,6 +23,7 @@ from .components.plotting import (
     plot_samples,
     plot_trajectory,
     store_trajectories,
+    plot_scatter,
 )
 from .components.schedule import ConstantNoiseScheduler, NoiseScheduler
 from .components.solver import FlowSolver
@@ -117,6 +118,7 @@ class CFMLitModule(LightningModule):
             # regularization taken for optimal Schrodinger bridge relationship
             self.ot_sampler = OTPlanSampler(method=ot_sampler, reg=2 * sigma_min**2)
         self.criterion = torch.nn.MSELoss()
+        self.print_once_flag = False
 
     def forward_integrate(self, batch: Any, t_span: torch.Tensor):
         """Forward pass with integration over t_span intervals.
@@ -249,6 +251,11 @@ class CFMLitModule(LightningModule):
 
         X = self.unpack_batch(batch)
         x0, x1, t_select = self.preprocess_batch(X, training)
+        if not self.print_once_flag:
+            plot_scatter(torch.stack([x0, x1], dim=1), title="distribution")
+            plot_scatter(x0[:, None, :], title="initial")
+            self.print_once_flag = True
+            
         # Either randomly sample a single T or sample a batch of T's
         if self.hparams.avg_size > 0:
             t = torch.rand(1).repeat(X.shape[0]).type_as(X)
@@ -394,6 +401,7 @@ class CFMLitModule(LightningModule):
     def forward_eval_integrate(self, ts, x0, x_rest, outputs, prefix):
         # Build a trajectory
         t_span = torch.linspace(0, 1, 101)
+        # print(f"dimension of x is {x_rest.shape}")
         aug_dims = self.val_augmentations.aug_dims
         regs = []
         trajs = []
@@ -421,6 +429,7 @@ class CFMLitModule(LightningModule):
                 nfe += solver.nfe
 
         full_trajs = torch.cat(full_trajs)
+        # print(f"full trajectory dimension is {full_trajs.shape}")
 
         if not self.is_image:
             regs = np.stack(regs).mean(axis=0)

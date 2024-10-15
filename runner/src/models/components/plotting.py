@@ -7,7 +7,7 @@ import scprep
 import torch
 
 
-def plot_scatter(obs, model, title="fig", wandb_logger=None):
+def plot_scatter(obs, title="fig", wandb_logger=None):
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
     batch_size, ts, dim = obs.shape
     obs = obs.reshape(-1, dim).detach().cpu().numpy()
@@ -88,6 +88,32 @@ def store_trajectories(obs: Union[torch.Tensor, list], model, title="trajs", sta
         os.makedirs("figs", exist_ok=True)
         np.save(f"figs/{title}.npy", traj)
 
+def plot_distributions(x0, x1, step):
+    # Convert x0 and x1 to numpy if they are PyTorch tensors
+    x0_np = x0.detach().cpu().numpy()
+    x1_np = x1.detach().cpu().numpy()
+    
+    # Create two connected scatter plots
+    plt.figure(figsize=(10, 5))
+    
+    # Plot x0
+    plt.subplot(1, 2, 1)  # 1 row, 2 columns, 1st subplot
+    plt.scatter(x0_np[:, 0], x0_np[:, 1], s=1, c='blue', alpha=0.5, label="x0")
+    plt.title(f"x0 at step {step}")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    
+    # Plot x1
+    plt.subplot(1, 2, 2)  # 1 row, 2 columns, 2nd subplot
+    plt.scatter(x1_np[:, 0], x1_np[:, 1], s=1, c='green', alpha=0.5, label="x1")
+    plt.title(f"x1 at step {step}")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    
+    # Show plots
+    plt.tight_layout()
+    plt.show()
+
 
 def plot_trajectory(
     obs: Union[torch.Tensor, list],
@@ -116,16 +142,16 @@ def plot_trajectory(
         obs = obs.reshape(-1, dim).detach().cpu().numpy()
         tts = np.tile(np.arange(ts), batch_size)
         scprep.plot.scatter2d(obs, c=tts)
-    plt.scatter(traj[:, :n, 0], traj[:, :n, 1], s=0.3, alpha=0.2, c="black", label="Flow")
-    plt.scatter(traj[-1, :n, 0], traj[-1, :n, 1], s=6, alpha=1, c="purple", marker="x")
+    # plt.scatter(traj[:, :n, 0], traj[:, :n, 1], s=0.3, alpha=0.2, c="black", label="Flow")
+    # plt.scatter(traj[-1, :n, 0], traj[-1, :n, 1], s=6, alpha=1, c="purple", marker="x")
     for i in range(20):
         plt.plot(traj[:, i, 0], traj[:, i, 1], c="red", alpha=0.5)
     # plt.legend(["Prior sample z(S)", "Flow", "z(0)"])
-    os.makedirs("figs", exist_ok=True)
-    plt.savefig(f"figs/{title}.png")
+    os.makedirs("figs/traj/", exist_ok=True)
+    plt.savefig(f"figs/traj/{title}.png")
     plt.close()
     if wandb_logger:
-        wandb_logger.log_image(key=key, images=[f"figs/{title}.png"])
+        wandb_logger.log_image(key=key, images=[f"figs/traj/{title}.png"])
 
 
 def plot_paths(
