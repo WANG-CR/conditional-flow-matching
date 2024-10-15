@@ -39,3 +39,5 @@ sigma_min: 0.1
 leaveout_timepoint: -1
 
 plot: true
+
+gaussain_sampler: rand

@@ -49,6 +49,7 @@ class CFMLitModule(LightningModule):
         test_nfe: int = 100,
         plot: bool = False,
         nice_name: str = "CFM",
+        gaussain_sampler: str = None,
     ) -> None:
         """Initialize a conditional flow matching network either as a generative model or for a
         sequence of timepoints.
@@ -119,6 +120,12 @@ class CFMLitModule(LightningModule):
             self.ot_sampler = OTPlanSampler(method=ot_sampler, reg=2 * sigma_min**2)
         self.criterion = torch.nn.MSELoss()
         self.print_once_flag = False
+        self.gaussian_dist = None
+        if gaussain_sampler == "QMC":
+            from scipy.stats import qmc
+            mean = np.zeros(self.dim)  # Mean 0 for each dimension
+            cov = np.eye(self.dim)  
+            self.gaussian_dist = qmc.MultivariateNormalQMC(mean, cov)
 
     def forward_integrate(self, batch: Any, t_span: torch.Tensor):
         """Forward pass with integration over t_span intervals.
@@ -198,7 +205,11 @@ class CFMLitModule(LightningModule):
         else:
             batch_size = X.shape[0]
             # If no trajectory assume generate from standard normal
-            x0 = torch.randn_like(X)
+            if self.gaussian_dist:
+                x0 = self.gaussian_dist.random(batch_size)
+                x0 = torch.tensor(x0, dtype=torch.float32)
+            else:
+                x0 = torch.randn_like(X)
             x1 = X
         return x0, x1, t_select
 
@@ -255,7 +266,7 @@ class CFMLitModule(LightningModule):
             plot_scatter(torch.stack([x0, x1], dim=1), title="distribution")
             plot_scatter(x0[:, None, :], title="initial")
             self.print_once_flag = True
-            
+
         # Either randomly sample a single T or sample a batch of T's
         if self.hparams.avg_size > 0:
             t = torch.rand(1).repeat(X.shape[0]).type_as(X)
