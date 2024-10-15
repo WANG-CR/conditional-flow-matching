@@ -37,3 +37,7 @@ sigma_min: 0.1
 
 # Set to integer if want to train with left out timepoint
 leaveout_timepoint: -1
+
+plot: true
+
+gaussain_sampler: rand
