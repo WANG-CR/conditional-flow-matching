@@ -257,6 +257,7 @@ class CFMLitModule(LightningModule):
         t = t + t_select.reshape(-1, *t.shape[1:])
         return x, ut, t, mu_t, sigma_t, eps_t
 
+
     def step(self, batch: Any, training: bool = False):
         """Computes the loss on a batch of data."""
 
@@ -416,8 +417,40 @@ class CFMLitModule(LightningModule):
             x_rest = x[:, 1:]
         return ts, x, x0, x_rest
 
+
+    def calc_normalized_path_energy(self, trajs, w2):
+        timesteps = 101
+        t_span = torch.linspace(0, 1, timesteps)
+        delta_t = 1.0 / timesteps
+        
+        x_t = trajs.clone()
+        # trajectory dimension is torch.Size([101, 1000, 2])
+        nfe = 0
+        path_energy_sum = 0.0
+
+        # For each time step t, compute v_theta(t, x(t)) via self.net and accumulate the energy
+        for nfe, t in enumerate(t_span):
+            with torch.no_grad():
+                # Compute velocity v_theta at time t and position x_t
+                v_t = self.net(t, x_t[nfe])
+            
+            # Compute squared norm ||v_theta(t, x_t)||^2
+            v_norm_sq = torch.norm(v_t, dim=1)**2  # Shape: [batch_size]
+            path_energy_sum += torch.mean(v_norm_sq) * delta_t
+
+        w22 = torch.tensor(w2 ** 2, dtype=path_energy_sum.dtype, device=path_energy_sum.device)
+        NPE = torch.abs(path_energy_sum - w22) / w22
+        return path_energy_sum, NPE
+
+
     def forward_eval_integrate(self, ts, x0, x_rest, outputs, prefix):
         # Build a trajectory
+        print(f"x0 shape is {x0.shape}")
+        print(f"x_rest shape is {x_rest.shape}")
+        print(f"ts is {ts}")
+        # x0 shape is torch.Size([1000, 2])
+        # ts = 2
+        # x_rest shape is torch.Size([1000, 1, 2])
         t_span = torch.linspace(0, 1, 101)
         aug_dims = self.val_augmentations.aug_dims
         regs = []
@@ -436,17 +469,19 @@ class CFMLitModule(LightningModule):
 
         if not self.is_image:
             solver.augmentations = self.val_augmentations
+            # ts means the timestep for trajectory data
             for i in range(ts - 1):
                 traj, aug = solver.odeint(x0_tmp, t_span + i)
+                # print(f"original traj shape is {traj.shape}")
                 full_trajs.append(traj)
                 traj, aug = traj[-1], aug[-1]
+                # traj refers to the next starting point x0 for the trajectory
                 x0_tmp = traj
                 regs.append(torch.mean(aug, dim=0).detach().cpu().numpy())
                 trajs.append(traj)
                 nfe += solver.nfe
 
         full_trajs = torch.cat(full_trajs)
-        # print(f"full trajectory dimension is {full_trajs.shape}")
 
         if not self.is_image:
             regs = np.stack(regs).mean(axis=0)
@@ -473,9 +508,14 @@ class CFMLitModule(LightningModule):
                     nfe += solver.nfe
                 names, dists = compute_distribution_distances(trajs[:-1], x_rest[:-1])
             else:
+                # print(f"trajs shape 2 is {trajs.shape}")
+                # print(f"x0_tmp shape 2 is {x0_tmp.shape}")
                 names, dists = compute_distribution_distances(trajs, x_rest)
             names = [f"{prefix}/{name}" for name in names]
             d = dict(zip(names, dists))
+            pe, npe = self.calc_normalized_path_energy(full_trajs, d[f"{prefix}/2-Wasserstein"])
+            d[f"{prefix}/pe"] = pe
+            d[f"{prefix}/npe"] = npe
             if self.hparams.leaveout_timepoint >= 0:
                 to_add = {
                     f"{prefix}/t_out/{key.split('/')[-1]}": val
@@ -483,6 +523,7 @@ class CFMLitModule(LightningModule):
                     if key.startswith(f"{prefix}/t{self.hparams.leaveout_timepoint}")
                 }
                 d.update(to_add)
+            
             d[f"{prefix}/nfe"] = nfe
 
             self.log_dict(d, sync_dist=True)
