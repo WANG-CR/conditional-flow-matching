@@ -19,3 +19,10 @@ python src/train.py -m experiment=cfm \
   model.sigma_min=0.1 \
   datamodule=scurve,moons,gaussians \
   seed=42,43,44,45,46 &
+
+python src/train.py -m experiment=cfm \
+  model=cfm \
+  launcher=mila_cpu_cluster \
+  model.sigma_min=0.1 \
+  datamodule=moons \
+  seed=42 &

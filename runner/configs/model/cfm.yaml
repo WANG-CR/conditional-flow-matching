@@ -40,4 +40,4 @@ leaveout_timepoint: -1
 
 plot: true
 
-gaussain_sampler: rand
+gaussian_sampler: rand

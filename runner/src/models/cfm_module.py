@@ -49,7 +49,7 @@ class CFMLitModule(LightningModule):
         test_nfe: int = 100,
         plot: bool = False,
         nice_name: str = "CFM",
-        gaussain_sampler: str = None,
+        gaussian_sampler: str = None,
     ) -> None:
         """Initialize a conditional flow matching network either as a generative model or for a
         sequence of timepoints.
@@ -121,7 +121,7 @@ class CFMLitModule(LightningModule):
         self.criterion = torch.nn.MSELoss()
         self.print_once_flag = False
         self.gaussian_dist = None
-        if gaussain_sampler == "QMC":
+        if gaussian_sampler == "QMC":
             from scipy.stats import qmc
             mean = np.zeros(self.dim)  # Mean 0 for each dimension
             cov = np.eye(self.dim)  

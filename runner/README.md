@@ -26,7 +26,7 @@ python src/train.py trainer.max_epochs=20 datamodule.batch_size=64
 
 We add gaussian_sampler as a new method to sample from the prior distribution
 ```
-python src/train.py experiment=cfm model=cfm launcher=mila_cpu_cluster datamodule=moons seed=42 model.sigma_min=0.1 model.plot=true model.gaussain_sampler=QMC
+python src/train.py experiment=cfm model=cfm launcher=mila_cpu_cluster datamodule=moons seed=42 model.sigma_min=0.1 model.plot=true model.gaussian_sampler=QMC
 ```
 
 
